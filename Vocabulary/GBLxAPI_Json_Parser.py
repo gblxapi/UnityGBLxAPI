@@ -6,21 +6,23 @@
 # This code is licensed under the MIT License (See LICENSE.txt for details)
 # -------------------------------------------------------------------------------------------------
 
-import xlrd
+from openpyxl import load_workbook
 import json
 from jsonmerge import merge
 
 # This function takes all of the GBLxAPI Vocabulary information in the workbook named workbookName
 # and parses it to json, writing to a file with the name defined in target.
 def GenerateJson(workbookName, target, nameCol, uriCol, descrCol):
-    wb = xlrd.open_workbook(filename=workbookName)
+    wb = load_workbook(filename=workbookName)
 
     totalMap = {} # totalMap has keys in [Activity, Grade, Domain, Focus, etc]
-    for ws in wb.sheets():
-        if ws.name == "Notes": continue
+    for ws in wb:
+        wsName = ws._WorkbookChild__title
 
-        print("Loading " + ws.name +"..."),
-        
+        if wsName == "Notes": continue
+
+        print("Loading " + wsName +"..."),
+
         sectionMap = {} # sectionMap has keys in [Counting, Algebra, Energy, etc]
 
         # local variables to allow for column overrides
@@ -31,30 +33,30 @@ def GenerateJson(workbookName, target, nameCol, uriCol, descrCol):
         # override column values for specific manually populated sheets in the default file
         # for automatically populated sheets, the default file uses columns F, I, and BB. For manual population, it's much easier to use A, B, and C.
         # This should not affect the values for the user vocab, since this file uses A, B, and C already.
-        if ws.name in ["Verb", "Activity", "Extension", "Grade"]:
+        if wsName in ["Verb", "Activity", "Extension", "Grade"]:
             nc = 0 # A
             uc = 1 # B
             dc = 2 # C
 
-        for row in range(1, ws.nrows): # indexing from 1 to skip header row
+        for row in ws.iter_rows(min_row=2): # min_row=2 to skip header row
             itemMap = {} # itemMap has keys in [name, description, id]
-            
+
             # force all values to lowercase for easy comparison
-            name = ws.cell_value(row, nc).lower()
-            uri = ws.cell_value(row, uc).lower()
-            descr = ws.cell_value(row, dc).lower()
-            
+            name = str(row[nc].value).lower() if row[nc].value is not None else ""
+            uri = str(row[uc].value).lower() if row[uc].value is not None else ""
+            descr = str(row[dc].value).lower() if row[dc].value is not None else ""
+
             # populate the map with the corresponding values
             itemMap['name'] = {}
             itemMap['description'] = {}
-            
+
             itemMap['name']['en-US'] = name
             itemMap['id'] = uri
             itemMap['description']['en-US'] = descr
 
             sectionMap[name] = itemMap
 
-        totalMap[ws.name.lower()] = sectionMap
+        totalMap[wsName.lower()] = sectionMap
 
         print("Done.")
 
