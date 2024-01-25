@@ -46,7 +46,7 @@ namespace DIG.GBLXAPI
 		{
 			try
 			{
-				return (string)GBLXAPI.StandardsJson[type][name]["id"];
+				return (string)GBLXAPI.StandardsJson[type.ToLower()][name.ToLower()]["id"];
 			}
 			catch (NullReferenceException)
 			{
